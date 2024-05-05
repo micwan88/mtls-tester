@@ -16,6 +16,6 @@ public class ServerController {
     public String user(Model model, Principal principal) {
         UserDetails currentUser = (UserDetails) ((Authentication) principal).getPrincipal();
         model.addAttribute("username", currentUser.getUsername());
-        return "user";
+        return "user.html";
     }
 }

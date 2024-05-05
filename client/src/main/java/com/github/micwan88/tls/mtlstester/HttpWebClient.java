@@ -1,53 +1,93 @@
 package com.github.micwan88.tls.mtlstester;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.security.KeyStore;
+import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 
-import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
+import javax.annotation.PreDestroy;
+import javax.net.ssl.SSLContext;
+
+import org.apache.hc.client5.http.fluent.Request;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.io.HttpClientConnectionManager;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactoryBuilder;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.client.reactive.ClientHttpConnector;
-import org.springframework.http.client.reactive.JettyClientHttpConnector;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
 public class HttpWebClient {
-    @Value("${mtlstester.client.url}")
+    private CloseableHttpClient myHttpClient;
     private String resUrl;
 
-    private WebClient myWebClient;
+    public HttpWebClient(
+            @Value("${mtlstester.client.url:}") String resUrl,
+            @Value("${mtlstester.client.ssl.key-store:}") Resource keystoreRes,
+            @Value("${mtlstester.client.ssl.key-store-password:}") String keystorePassword,
+            @Value("${mtlstester.client.ssl.key-password:}") String keyPassword,
+            @Value("${mtlstester.client.ssl.trust-store:}") Resource truststoreRes,
+            @Value("${mtlstester.client.ssl.trust-store-password:}") String truststorePassword
+        ) {
+        this.resUrl = resUrl;
 
-    public HttpWebClient() throws NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, KeyStoreException {
-        SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
-        
-        KeyStore keystore = KeyStore.getInstance("JKS");
-        keystore.load(new FileInputStream("D:\\MichaelWan\\pinmgr\\docker\\cert\\client.jks"), "keystore2".toCharArray());
-        
-        KeyStore truststore = KeyStore.getInstance("JKS");
-        truststore.load(new FileInputStream("D:\\MichaelWan\\pinmgr\\docker\\cert\\truststore.jks"), "truststore".toCharArray());
+        SSLContextBuilder sslContextBuilder = SSLContexts.custom();
+        SSLContext sslContext = null;
+        try {
+            sslContextBuilder.loadKeyMaterial(keystoreRes.getURL(), keystorePassword.toCharArray(), keyPassword.toCharArray());
+        } catch (UnrecoverableKeyException | KeyStoreException | CertificateException | IOException | NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
 
-        sslContextFactory.setKeyStore(keystore);
-        sslContextFactory.setKeyStorePassword("keystore2");
-        sslContextFactory.setTrustStore(truststore);
-        sslContextFactory.setTrustStorePassword("truststore");
+        try {
+            sslContextBuilder.loadTrustMaterial(truststoreRes.getURL(), truststorePassword.toCharArray());
+        } catch (IOException | NoSuchAlgorithmException | KeyStoreException | CertificateException e) {
+            e.printStackTrace();
+        }
 
+        try {
+            sslContext = sslContextBuilder.build();
+        } catch (KeyManagementException | NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
 
+        final SSLConnectionSocketFactory sslSocketFactory = SSLConnectionSocketFactoryBuilder.create()
+                .setSslContext(sslContext)
+                .build();
 
-        HttpClient httpClient = new HttpClient(sslContextFactory);
-        ClientHttpConnector connector = new JettyClientHttpConnector(httpClient);
+        final HttpClientConnectionManager httpConnectionMgr = PoolingHttpClientConnectionManagerBuilder.create()
+                .setSSLSocketFactory(sslSocketFactory)
+                .build();
 
-        this.myWebClient = WebClient.builder()
-            .clientConnector(connector)
-            .build();
+        this.myHttpClient = HttpClients.custom()
+                .setConnectionManager(httpConnectionMgr)
+                .build();
     }
 
     public String get() {
-        return myWebClient.get().uri(resUrl).retrieve().bodyToMono(String.class).block();
+        try {
+            return Request.get(resUrl).execute(myHttpClient).returnContent().toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "Error during get ...";
+    }
+
+    @PreDestroy
+    public void destroy() {
+        if (myHttpClient != null) {
+            try {
+                myHttpClient.close();
+            } catch (IOException e) {
+                //Do nothing
+            }
+        }
     }
 }
