@@ -33,6 +33,7 @@ public class HttpWebClient {
             @Value("${mtlstester.client.ssl.key-store:}") Resource keystoreRes,
             @Value("${mtlstester.client.ssl.key-store-password:}") String keystorePassword,
             @Value("${mtlstester.client.ssl.key-password:}") String keyPassword,
+            @Value("${mtlstester.client.ssl.key-alias:}") String keyAlias,
             @Value("${mtlstester.client.ssl.trust-store:}") Resource truststoreRes,
             @Value("${mtlstester.client.ssl.trust-store-password:}") String truststorePassword
         ) {
@@ -41,7 +42,11 @@ public class HttpWebClient {
         SSLContextBuilder sslContextBuilder = SSLContexts.custom();
         SSLContext sslContext = null;
         try {
-            sslContextBuilder.loadKeyMaterial(keystoreRes.getURL(), keystorePassword.toCharArray(), keyPassword.toCharArray());
+            if (keyAlias != null && !keyAlias.isEmpty()) {
+                sslContextBuilder.loadKeyMaterial(keystoreRes.getURL(), keystorePassword.toCharArray(), keyPassword.toCharArray(), (aliases, sslParameters) -> keyAlias);
+            } else {
+                sslContextBuilder.loadKeyMaterial(keystoreRes.getURL(), keystorePassword.toCharArray(), keyPassword.toCharArray());
+            }
         } catch (UnrecoverableKeyException | KeyStoreException | CertificateException | IOException | NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
