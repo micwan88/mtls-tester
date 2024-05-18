@@ -1,6 +1,8 @@
 package com.github.micwan88.tls.mtlstester;
 
 import java.security.Principal;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +15,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -29,13 +33,30 @@ public class ServerController {
     })
     public ResponseEntity<String> user(
             Principal principal,
+            @RequestHeader HttpHeaders requestHeaders,
+            @RequestBody(required = false) Map<String, String> requestPayloadMap,
             @Value("${mtlstester.server.contentType:json}") String contentType,
             @Value("${mtlstester.server.responseContent:{\"hello\"}}") String responseContent
         ) {
+
+        logger.debug("Got user request ...");
+
+        requestHeaders.forEach((headerKey, headerValues) -> {
+            logger.debug("RequestHeader: {} -> {}", headerKey, 
+                headerValues.stream().collect(Collectors.joining(",")));
+        });
+
+        if (requestPayloadMap != null) {
+            requestPayloadMap.forEach((mapKey, mapValue) -> {
+                logger.debug("RequestPayload: {} -> {}", mapKey, mapValue);
+            });
+        }
+
+        logger.debug("Construct response ...");
+
         UserDetails currentUser = (UserDetails) ((Authentication) principal).getPrincipal();
 
-        logger.info("################### principal: {} ###################", principal);
-        logger.info("################### currentUser: {} ###################", currentUser);
+        logger.info("currentUser: {}", currentUser);
 
         final HttpHeaders headers = new HttpHeaders();
 
@@ -64,9 +85,27 @@ public class ServerController {
         RequestMethod.PUT
     })
     public ResponseEntity<String> home(
+            @RequestHeader HttpHeaders requestHeaders,
+            @RequestBody(required = false) Map<String, String> requestPayloadMap,
             @Value("${mtlstester.server.contentType:json}") String contentType,
             @Value("${mtlstester.server.responseContent:{\"hello\"}}") String responseContent
         ) {
+
+        logger.debug("Got home request ...");
+
+        requestHeaders.forEach((headerKey, headerValues) -> {
+            logger.debug("RequestHeader: {} -> {}", headerKey, 
+                headerValues.stream().collect(Collectors.joining(",")));
+        });
+
+        if (requestPayloadMap != null) {
+            requestPayloadMap.forEach((mapKey, mapValue) -> {
+                logger.debug("RequestPayload: {} -> {}", mapKey, mapValue);
+            });
+        }
+
+        logger.debug("Construct response ...");
+
         final HttpHeaders headers = new HttpHeaders();
 
         if (contentType.equalsIgnoreCase("json")) {
