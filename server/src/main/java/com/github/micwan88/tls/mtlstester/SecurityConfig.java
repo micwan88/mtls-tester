@@ -27,7 +27,10 @@ public class SecurityConfig {
             .and()
             .x509()
             .subjectPrincipalRegex("CN=(.*?)(?:,|$)")
-            .userDetailsService(userDetailsService());
+            .userDetailsService(userDetailsService())
+            .and()
+            .cors().disable()
+            .csrf().disable();
         return http.build();
     }
 
