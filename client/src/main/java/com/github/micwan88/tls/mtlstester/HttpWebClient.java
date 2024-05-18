@@ -17,6 +17,7 @@ import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuil
 import org.apache.hc.client5.http.io.HttpClientConnectionManager;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactoryBuilder;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.SSLContexts;
 import org.slf4j.Logger;
@@ -33,10 +34,14 @@ public class HttpWebClient {
     private CloseableHttpClient myHttpClient;
     private String resUrl;
     private String method;
+    private String contentType;
+    private String bodyContent;
 
     public HttpWebClient(
             @Value("${mtlstester.client.url:}") String resUrl,
-            @Value("${mtlstester.client.method:}") String method,
+            @Value("${mtlstester.client.method:get}") String method,
+            @Value("${mtlstester.client.contentType:json}") String contentType,
+            @Value("${mtlstester.client.bodyContent:}") String bodyContent,
             @Value("${mtlstester.client.ssl.key-store:}") Resource keystoreRes,
             @Value("${mtlstester.client.ssl.key-store-password:}") String keystorePassword,
             @Value("${mtlstester.client.ssl.key-password:}") String keyPassword,
@@ -46,6 +51,8 @@ public class HttpWebClient {
         ) {
         this.resUrl = resUrl;
         this.method = method;
+        this.contentType = contentType;
+        this.bodyContent = bodyContent;
 
         SSLContextBuilder sslContextBuilder = SSLContexts.custom();
         SSLContext sslContext = null;
@@ -86,17 +93,32 @@ public class HttpWebClient {
 
     public String execute() {
         try {
-            String returnResponse = null;
+            Request targetRequest = null;
+            ContentType targetContentType = ContentType.TEXT_HTML;
+
+            if (contentType.equalsIgnoreCase("json")) {
+                targetContentType = ContentType.APPLICATION_JSON;
+            } else if (contentType.equalsIgnoreCase("xml")) {
+                targetContentType = ContentType.APPLICATION_XML;
+            } else if (contentType.equalsIgnoreCase("soap")) {
+                targetContentType = ContentType.APPLICATION_SOAP_XML;
+            } //else HTML default
+
             if (method.equalsIgnoreCase("POST")) {
-                returnResponse = Request.post(resUrl).execute(myHttpClient).returnContent().toString();
+                targetRequest = Request.post(resUrl);
             } else if (method.equalsIgnoreCase("PUT")) {
-                returnResponse = Request.put(resUrl).execute(myHttpClient).returnContent().toString();
+                targetRequest = Request.put(resUrl);
             } else if (method.equalsIgnoreCase("DELETE")) {
-                returnResponse = Request.delete(resUrl).execute(myHttpClient).returnContent().toString();
+                targetRequest = Request.delete(resUrl);
             } else { //GET - default
-                returnResponse = Request.get(resUrl).execute(myHttpClient).returnContent().toString();
+                targetRequest = Request.get(resUrl);
             }
-            return returnResponse;
+
+            if (bodyContent != null) {
+                targetRequest.bodyString(bodyContent, targetContentType);
+            }
+
+            return targetRequest.execute(myHttpClient).returnContent().toString();
         } catch (IOException e) {
             logger.error("Got error", e);
         }

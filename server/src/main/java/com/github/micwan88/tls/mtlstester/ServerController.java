@@ -1,7 +1,6 @@
 package com.github.micwan88.tls.mtlstester;
 
 import java.security.Principal;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -30,11 +29,11 @@ public class ServerController {
         RequestMethod.POST,
         RequestMethod.DELETE,
         RequestMethod.PUT
-    })
+    }, consumes = { "*/*" })
     public ResponseEntity<String> user(
             Principal principal,
             @RequestHeader HttpHeaders requestHeaders,
-            @RequestBody(required = false) Map<String, String> requestPayloadMap,
+            @RequestBody(required = false) String requestPayload,
             @Value("${mtlstester.server.contentType:json}") String contentType,
             @Value("${mtlstester.server.responseContent:{\"hello\"}}") String responseContent
         ) {
@@ -46,11 +45,7 @@ public class ServerController {
                 headerValues.stream().collect(Collectors.joining(",")));
         });
 
-        if (requestPayloadMap != null) {
-            requestPayloadMap.forEach((mapKey, mapValue) -> {
-                logger.debug("RequestPayload: {} -> {}", mapKey, mapValue);
-            });
-        }
+        logger.debug("RequestPayload: {}", requestPayload);
 
         logger.debug("Construct response ...");
 
@@ -83,10 +78,10 @@ public class ServerController {
         RequestMethod.POST,
         RequestMethod.DELETE,
         RequestMethod.PUT
-    })
+    }, consumes = { "*/*" })
     public ResponseEntity<String> home(
             @RequestHeader HttpHeaders requestHeaders,
-            @RequestBody(required = false) Map<String, String> requestPayloadMap,
+            @RequestBody(required = false) String requestPayload,
             @Value("${mtlstester.server.contentType:json}") String contentType,
             @Value("${mtlstester.server.responseContent:{\"hello\"}}") String responseContent
         ) {
@@ -98,11 +93,7 @@ public class ServerController {
                 headerValues.stream().collect(Collectors.joining(",")));
         });
 
-        if (requestPayloadMap != null) {
-            requestPayloadMap.forEach((mapKey, mapValue) -> {
-                logger.debug("RequestPayload: {} -> {}", mapKey, mapValue);
-            });
-        }
+        logger.debug("RequestPayload: {}", requestPayload);
 
         logger.debug("Construct response ...");
 
