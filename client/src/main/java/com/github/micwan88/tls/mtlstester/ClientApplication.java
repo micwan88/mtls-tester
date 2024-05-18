@@ -1,11 +1,16 @@
 package com.github.micwan88.tls.mtlstester;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class ClientApplication implements CommandLineRunner {
+
+	Logger logger = LoggerFactory.getLogger(ClientApplication.class);
+
 	private HttpWebClient httpWebClient;
 
 	public ClientApplication(HttpWebClient httpWebClient) {
@@ -22,8 +27,8 @@ public class ClientApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-		System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
-		System.out.println(this.httpWebClient.get());
-		System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+		logger.info("#############################################################");
+		System.out.println(this.httpWebClient.execute());
+		logger.info("#############################################################");
 	}
 }
